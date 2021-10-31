@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/blackhades/go-amqp-reconnect/rabbitmq"
+	"github.com/blackhades/go-amqp-lib/rabbitmq"
 	"github.com/streadway/amqp"
 	"log"
 	"sync"

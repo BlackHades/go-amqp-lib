@@ -1,4 +1,4 @@
-module github.com/blackhades/go-amqp-reconnect
+module github.com/blackhades/go-amqp-lib
 
 go 1.16
 

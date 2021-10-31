@@ -5,6 +5,7 @@ To simply developers, here is auto reconnect wrap with detail comments.
 
 Also, with some basic helper functions like `Connect`, `DeclareQueues`, `DeclareExchanges`
 
+This library depends on `streadway/amqp` and `sirius1024/go-amqp-reconnect`
 
 ## How to change existing code
 1. add import `import "github.com/blackhades/go-amqp-reconnect/rabbitmq"`
