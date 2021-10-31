@@ -1,29 +1,27 @@
 package rabbitmq
 
 import (
-	"fmt"
+	"github.com/streadway/amqp"
+	"log"
 	"os"
 	"strconv"
-	"time"
-
 	"sync/atomic"
-
-	"github.com/streadway/amqp"
+	"time"
 )
 
-func getReconnDelay() int {
-	if os.Getenv("AMQP_RECONN_DELAY_SECONDS") == "" {
+func getReconnectionDelay() int {
+	if os.Getenv("AMQP_RECONNECTION_DELAY_IN_SECONDS") == "" {
 		return 3
 	}
-	delay, err := strconv.Atoi(os.Getenv("AMQP_RECONN_DELAY_SECONDS"))
+	delay, err := strconv.Atoi(os.Getenv("AMQP_RECONNECTION_DELAY_IN_SECONDS"))
 	if err != nil {
-		fmt.Println("Cannot convert env `AMQP_RECONN_DELAY_SECONDS` to a number, default to 3.")
+		log.Println("Cannot convert env `AMQP_RECONNECTION_DELAY_IN_SECONDS` to a number, default to 3.")
 		return 3
 	}
 	return delay
 }
 
-var delay = getReconnDelay() // reconnect after delay seconds
+var delay = getReconnectionDelay() // reconnect after delay seconds
 
 // Connection amqp.Connection wrapper
 type Connection struct {
@@ -46,11 +44,11 @@ func (c *Connection) Channel() (*Channel, error) {
 			reason, ok := <-channel.Channel.NotifyClose(make(chan *amqp.Error))
 			// exit this goroutine if closed by developer
 			if !ok || channel.IsClosed() {
-				debug("channel closed")
+				log.Println("channel closed")
 				channel.Close() // close again, ensure closed flag set when connection closed
 				break
 			}
-			debugf("channel closed, reason: %v", reason)
+			log.Printf("channel closed, reason: %v\n", reason)
 
 			// reconnect if not closed by developer
 			for {
@@ -59,12 +57,12 @@ func (c *Connection) Channel() (*Channel, error) {
 
 				ch, err := c.Connection.Channel()
 				if err == nil {
-					debug("channel recreate success")
+					log.Println("channel recreate success")
 					channel.Channel = ch
 					break
 				}
 
-				debugf("channel recreate failed, err: %v", err)
+				log.Printf("channel recreate failed, err: %v\n", err)
 			}
 		}
 
@@ -89,10 +87,10 @@ func Dial(url string) (*Connection, error) {
 			reason, ok := <-connection.Connection.NotifyClose(make(chan *amqp.Error))
 			// exit this goroutine if closed by developer
 			if !ok {
-				debug("connection closed")
+				log.Println("connection closed")
 				break
 			}
-			debugf("connection closed, reason: %v", reason)
+			log.Printf("connection closed, reason: %v\n", reason)
 
 			// reconnect if not closed by developer
 			for {
@@ -102,11 +100,11 @@ func Dial(url string) (*Connection, error) {
 				conn, err := amqp.Dial(url)
 				if err == nil {
 					connection.Connection = conn
-					debugf("reconnect success")
+					log.Printf("reconnect success\n")
 					break
 				}
 
-				debugf("reconnect failed, err: %v", err)
+				log.Printf("reconnect failed, err: %v\n", err)
 			}
 		}
 	}()
@@ -130,10 +128,10 @@ func DialCluster(urls []string) (*Connection, error) {
 		for {
 			reason, ok := <-connection.Connection.NotifyClose(make(chan *amqp.Error))
 			if !ok {
-				debug("connection closed")
+				log.Println("connection closed")
 				break
 			}
-			debugf("connection closed, reason: %v", reason)
+			log.Printf("connection closed, reason: %v\n", reason)
 
 			// reconnect with another node of cluster
 			for {
@@ -145,11 +143,11 @@ func DialCluster(urls []string) (*Connection, error) {
 				conn, err := amqp.Dial(urls[newSeq])
 				if err == nil {
 					connection.Connection = conn
-					debugf("reconnect success")
+					log.Printf("reconnect success\n")
 					break
 				}
 
-				debugf("reconnect failed, err: %v", err)
+				log.Printf("reconnect failed, err: %v\n", err)
 			}
 		}
 	}(urls, &nodeSequence)
@@ -177,7 +175,7 @@ type Channel struct {
 
 // IsClosed indicate closed by developer
 func (ch *Channel) IsClosed() bool {
-	return (atomic.LoadInt32(&ch.closed) == 1)
+	return atomic.LoadInt32(&ch.closed) == 1
 }
 
 // Close ensure closed flag set
@@ -199,7 +197,7 @@ func (ch *Channel) Consume(queue, consumer string, autoAck, exclusive, noLocal, 
 		for {
 			d, err := ch.Channel.Consume(queue, consumer, autoAck, exclusive, noLocal, noWait, args)
 			if err != nil {
-				debugf("consume failed, err: %v", err)
+				log.Printf("consume failed, err: %v\n", err)
 				time.Sleep(time.Duration(delay) * time.Second)
 				continue
 			}

@@ -1,4 +1,4 @@
-module github.com/sirius1024/go-amqp-reconnect
+module github.com/blackhades/go-amqp-reconnect
 
 go 1.16
 

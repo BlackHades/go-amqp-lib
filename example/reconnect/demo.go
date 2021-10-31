@@ -1,18 +1,14 @@
 package main
 
 import (
+	"github.com/blackhades/go-amqp-reconnect/rabbitmq"
+	"github.com/streadway/amqp"
 	"log"
 	"sync"
 	"time"
-
-	"github.com/streadway/amqp"
-
-	"github.com/sirius1024/go-amqp-reconnect/rabbitmq"
 )
 
 func main() {
-	rabbitmq.Debug = true
-
 	conn, err := rabbitmq.Dial("amqp://127.0.0.1:5672")
 	if err != nil {
 		log.Panic(err)
