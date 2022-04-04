@@ -22,7 +22,7 @@ func main() {
 	exchangeName := "test-exchange"
 	queueName := "test-queue"
 
-	err = sendCh.ExchangeDeclare(exchangeName, amqp.ExchangeDirect, true, false, false, false, nil)
+	err = sendCh.ExchangeDeclare(exchangeName, amqp.ExchangeFanout, true, false, false, false, nil)
 	if err != nil {
 		log.Panic(err)
 	}

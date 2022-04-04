@@ -9,6 +9,15 @@ import (
 	"time"
 )
 
+var delay = getReconnectionDelay() // reconnect after delay seconds
+
+// Connection amqp.Connection wrapper
+type Connection struct {
+	*amqp.Connection
+}
+
+var connectionError chan *amqp.Error
+
 func getReconnectionDelay() int {
 	if os.Getenv("AMQP_RECONNECTION_DELAY_IN_SECONDS") == "" {
 		return 3
@@ -21,12 +30,6 @@ func getReconnectionDelay() int {
 	return delay
 }
 
-var delay = getReconnectionDelay() // reconnect after delay seconds
-
-// Connection amqp.Connection wrapper
-type Connection struct {
-	*amqp.Connection
-}
 
 // Channel wrap amqp.Connection.Channel, get a auto reconnect channel
 func (c *Connection) Channel() (*Channel, error) {
@@ -73,6 +76,8 @@ func (c *Connection) Channel() (*Channel, error) {
 
 // Dial wrap amqp.Dial, dial and get a reconnect connection
 func Dial(url string) (*Connection, error) {
+
+	log.Println("================== Connecting To Single Node ==================")
 	conn, err := amqp.Dial(url)
 	if err != nil {
 		return nil, err
@@ -114,7 +119,9 @@ func Dial(url string) (*Connection, error) {
 
 // DialCluster with reconnect
 func DialCluster(urls []string) (*Connection, error) {
+	log.Println("================== Connecting To Cluster ==================")
 	nodeSequence := 0
+
 	conn, err := amqp.Dial(urls[nodeSequence])
 
 	if err != nil {
@@ -146,7 +153,6 @@ func DialCluster(urls []string) (*Connection, error) {
 					log.Printf("reconnect success\n")
 					break
 				}
-
 				log.Printf("reconnect failed, err: %v\n", err)
 			}
 		}
@@ -217,3 +223,4 @@ func (ch *Channel) Consume(queue, consumer string, autoAck, exclusive, noLocal, 
 
 	return deliveries, nil
 }
+

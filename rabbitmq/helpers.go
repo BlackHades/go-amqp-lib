@@ -15,6 +15,8 @@ var channel *Channel
 var connection *Connection
 var once = new(sync.Once)
 var DeadLetterQueue string
+var urls []string
+var err error
 
 type GenericFN func([]byte) error
 
@@ -36,13 +38,14 @@ func resolveRabbitMQURL(url string) (error, []string) {
 func Connect(url string) *Channel {
 	once.Do(func() {
 		// Connect to the rabbitMQ instance
-		err, urls := resolveRabbitMQURL(url)
+		err, urls = resolveRabbitMQURL(url)
 		if err != nil {
 			log.Panic(err)
 		}
 
 		var createdConnection *Connection
-		if len(url) > 1 {
+
+		if len(urls) > 1 {
 			log.Println("RabbitMQ: initiating cluster mode")
 			createdConnection, err = DialCluster(urls)
 		} else {
@@ -67,29 +70,6 @@ func Connect(url string) *Channel {
 		if err != nil {
 			log.Println("Error Creating Exchange: DefaultServiceExchange", err)
 		}
-		//
-		//fmt.Println("Error Creating exchange", err)
-		//queue, err := channel.QueueDeclare(DefaultServiceQueue, true, false, false, false, nil)
-		//log.Println("Queue", queue)
-		//if err != nil {
-		//	log.Println("Error Creating Queue: DefaultServiceQueue", err)
-		//}
-		//
-		//queue, err = channel.QueueDeclare(DeadLetterQueue, true, false, false, false, nil)
-		//log.Println("Queue", queue)
-		//if err != nil {
-		//	log.Println("Error Creating Queue: DeadLetterQueue", err)
-		//}
-		//
-		//err = channel.QueueBind(DefaultServiceQueue, "", EventServiceExchange, false, nil)
-		//if err != nil {
-		//	log.Println("Error binding Queue: Event Service Exchange bind", err)
-		//}
-		//
-		//err = channel.QueueBind(DefaultServiceQueue, "", DefaultServiceExchange, false, nil)
-		//if err != nil {
-		//	log.Println("Error binding Queue: Event Service Exchange bind", err)
-		//}
 
 		channel = createdChannel
 		connection = createdConnection
@@ -146,7 +126,6 @@ func PublishToExchange(exchangeName string, data interface{}) error {
 }
 
 func PublishToQueue(queueName string, data interface{}) error {
-
 	jsonPayload, _ := json.Marshal(data)
 	message := amqp.Publishing{
 		Timestamp: time.Now(),
@@ -157,7 +136,6 @@ func PublishToQueue(queueName string, data interface{}) error {
 		log.Println("Error While Pushing to Queue: ", err)
 		return err
 	}
-
 	return nil
 }
 
